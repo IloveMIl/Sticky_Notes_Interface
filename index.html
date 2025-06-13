@@ -1,0 +1,255 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>便利貼介面</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    .sticky-note {
+      position: relative;
+      width: 80vw;
+      aspect-ratio: 1/1;
+      max-width: 400px;
+      max-height: 400px;
+      background-color: #fff;
+      border: 2px solid #000;
+      box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+    }
+    .sticky-note::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.1; /* 背景圖片透明度 10% */
+      z-index: 0;
+    }
+    .theme {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #000;
+      opacity: 0.5;
+      margin-top: 10%;
+      text-align: center;
+      z-index: 1;
+    }
+    .quote {
+      font-size: 0.8em;
+      color: #000;
+      opacity: 0.5;
+      margin-bottom: 10%;
+      text-align: center;
+      padding: 0 10px;
+      z-index: 1;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    select, button {
+      padding: 5px 10px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="sticky-note" id="stickyNote"></div>
+  <div class="controls">
+    <button onclick="prevPage()">上一頁</button>
+    <select id="pageSelect" onchange="changePage(this.value)"></select>
+    <button onclick="nextPage()">下一頁</button>
+  </div>
+
+  <script>
+    const pages = [
+      ...Array(16).fill().map((_, i) => ({
+        theme: '技術學習',
+        quote: [
+          '每一次Debug都是一場思維的冒險。',
+          '技術的進步源於無數次試錯的勇氣。',
+          '學習新技能是點亮未來的火炬。',
+          '從零到一，技術構築夢想。',
+          '每行代碼都是一次邏輯的雕琢。',
+          '技術學習是一場永無止境的旅程。',
+          '探索未知，技術是你的羅盤。',
+          '從錯誤中學習，技術因你進步。',
+          '技術是橋樑，連繫現實與未來。',
+          '每一次嘗試都是技術的積累。',
+          '學習技術，解鎖無限可能。',
+          '技術的深度，取決於你的好奇。',
+          '用技術編織未來的藍圖。',
+          '技術學習，是一場心智的修行。',
+          '從基礎到精通，技術改變人生。',
+          '技術的火花，點燃創新的星空。'
+        ][i],
+        bgColor: '#fffacd',
+        bgImage: 'factory.png'
+      })),
+      ...Array(17).fill().map((_, i) => ({
+        theme: '沉默工作',
+        quote: [
+          '沉默中，專注孕育傑作。',
+          '每一次努力，都是無聲的吶喊。',
+          '沉默的工作，鑄就堅實的成就。',
+          '專注於細節，沉默中綻放光芒。',
+          '工作無聲，成果震耳欲聾。',
+          '沉默是力量，工作是證明。',
+          '每滴汗水，都是沉默的詩篇。',
+          '專注於當下，沉默創造未來。',
+          '沉默中，工作構築夢想。',
+          '無聲的堅持，成就非凡人生。',
+          '沉默的工作，點亮平凡的日子。',
+          '每一次努力，都是沉默的輝煌。',
+          '沉默是最好的回答，工作是證明。',
+          '在沉默中，工作開花結果。',
+          '專注與沉默，編織成功的篇章。',
+          '沉默的工作，鋪就成功的道路。',
+          '無聲的努力，成就有聲的未來。'
+        ][i],
+        bgColor: '#e0ffff',
+        bgImage: 'light.png'
+      })),
+      ...Array(17).fill().map((_, i) => ({
+        theme: '未說出口的情緒',
+        quote: [
+          '沉默的情緒，是心靈的低語。',
+          '未說出口的情感，藏在眼神裡。',
+          '每一次沉默，都是一場內心的對話。',
+          '情緒如潮，未說卻已洶湧。',
+          '心靈的角落，藏著未說的故事。',
+          '未說的情緒，是最深的共鳴。',
+          '沉默中，情緒訴說無聲的語言。',
+          '每顆心都有未說出口的秘密。',
+          '情緒如詩，未說卻已成篇。',
+          '沉默是情緒的畫布，等待書寫。',
+          '未說的情感，是心靈的迴響。',
+          '每一次沉默，都是情緒的沉澱。',
+          '未說出口的話，藏在心底的星空。',
+          '情緒無聲，卻能撼動心靈。',
+          '未說的情感，是最真摯的表達。',
+          '沉默中，情緒編織生命的篇章。',
+          '未說出口，是情緒最美的留白。'
+        ][i],
+        bgColor: '#f0e6ff',
+        bgImage: 'silhouette.png'
+      }))
+    ];
+
+    let currentPage = 0;
+    const stickyNote = document.getElementById('stickyNote');
+    const pageSelect = document.getElementById('pageSelect');
+
+    function updateStickyNote() {
+      const page = pages[currentPage];
+      stickyNote.style.backgroundColor = page.bgColor;
+      stickyNote.style.setProperty('--bg-image', `url(${page.bgImage})`);
+      stickyNote.innerHTML = `
+        <div class="theme">${page.theme}</div>
+        <div class="quote">${page.quote}</div>
+      `;
+      pageSelect.value = currentPage;
+    }
+
+    function populateSelect() {
+      pages.forEach((_, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `第 ${i + 1} 頁`;
+        pageSelect.appendChild(option);
+      });
+    }
+
+    function changePage(page) {
+      currentPage = parseInt(page);
+      updateStickyNote();
+    }
+
+    function prevPage() {
+      if (currentPage > 0) {
+        currentPage--;
+        updateStickyNote();
+      }
+    }
+
+    function nextPage() {
+      if (currentPage < pages.length - 1) {
+        currentPage++;
+        updateStickyNote();
+      }
+    }
+
+    // 動態設置背景圖片
+    stickyNote.style.setProperty('--bg-image', `url(${pages[0].bgImage})`);
+    document.styleSheets[0].insertRule(`
+      .sticky-note::before {
+        background-image: var(--bg-image);
+      }
+    `, 0);
+
+    window.addEventListener('resize', updateStickyNote);
+    populateSelect();
+    updateStickyNote();
+  </script>
+</body>
+</html>
